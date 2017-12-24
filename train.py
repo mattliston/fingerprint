@@ -10,6 +10,9 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 parser.add_argument('--png',help='png goal',default='./NISTSpecialDatabase4GrayScaleImagesofFIGS/sd04/png_txt/figs_0/s0044_03.png')
 parser.add_argument('--lr', help='learning rate', default=0.001, type=float)
 parser.add_argument('--epochs', help='training epochs', default=1000000, type=int)
+parser.add_argument('--steps', help='steps to run automata', default=100, type=int)
+parser.add_argument('--dilation', help='convolution dilation factor', default=1, type=int)
+parser.add_argument('--kernel', help='convolution kernel size', default=3, type=int)
 args = parser.parse_args()
 print args
 
@@ -17,9 +20,9 @@ x = tf.placeholder('float32', [1,256,256,1],name='x') ; print x
 y = tf.placeholder('float32', [1,256,256,1],name='y') ; print y
 
 with tf.variable_scope("rule"):
-    n = tf.layers.conv2d(inputs=x,filters=1,kernel_size=3,padding='same',dilation_rate=1,activation=tf.nn.elu) ; print n
-    for i in range(40):
-        n = tf.layers.conv2d(inputs=n,filters=1,kernel_size=3,padding='same',dilation_rate=1,activation=tf.nn.elu,reuse=True) ; print n
+    n = tf.layers.conv2d(inputs=x,filters=1,kernel_size=args.kernel,padding='same',dilation_rate=args.dilation,activation=tf.nn.elu) ; print n
+    for i in range(args.steps):
+        n = tf.layers.conv2d(inputs=n,filters=1,kernel_size=args.kernel,padding='same',dilation_rate=args.dilation,activation=tf.nn.elu,reuse=True) ; print n
 
 loss = tf.reduce_mean(tf.squared_difference(n,y))
 opt = tf.train.AdamOptimizer(learning_rate=args.lr)
