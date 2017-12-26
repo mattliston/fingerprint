@@ -17,16 +17,27 @@ parser.add_argument('--rules', help='rules', default=3, type=int)
 args = parser.parse_args()
 print args
 
-x = tf.placeholder('float32', [1,256,256,1],name='x') ; print x
+#x = tf.placeholder('float32', [1,256,256,1],name='x') ; print x
+x = tf.placeholder('float32', [1,4,4,1],name='x') ; print x
 y = tf.placeholder('float32', [1,256,256,1],name='y') ; print y
 
-with tf.variable_scope("rule"):
-    names=[]
-    n = tf.layers.conv2d(inputs=x,filters=1,kernel_size=args.kernel,padding='same',dilation_rate=args.dilation,activation=tf.nn.elu,name='0') ; print n
-    for i in range(1,args.rules):    
-        n = tf.layers.conv2d(inputs=n,filters=1,kernel_size=args.kernel,padding='same',dilation_rate=args.dilation,activation=tf.nn.elu,name=str(i)) ; print n
-        for j in range(args.steps):
-            n = tf.layers.conv2d(inputs=n,filters=1,kernel_size=args.kernel,padding='same',dilation_rate=args.dilation,activation=tf.nn.elu,name=str(i),reuse=True);print n
+n = tf.identity(x)
+for s in [8,16,32,64,128]:
+    n = tf.layers.conv2d(inputs=n, filters=args.rules, kernel_size=args.kernel, strides=1,activation=tf.nn.elu, padding='same') ; print n
+    n = tf.layers.conv2d(inputs=n, filters=args.rules, kernel_size=args.kernel, strides=1,activation=tf.nn.elu, padding='same') ; print n
+    n = tf.image.resize_bilinear(images=n,size=[s,s]) ; print n
+
+n = tf.layers.conv2d(inputs=n, filters=1, kernel_size=args.kernel, strides=1,activation=tf.nn.elu, padding='same') ; print n
+n = tf.layers.conv2d(inputs=n, filters=1, kernel_size=args.kernel, strides=1,activation=tf.nn.elu, padding='same') ; print n
+n = tf.image.resize_bilinear(images=n,size=[256,256]) ; print n
+
+#with tf.variable_scope("rule"):
+#    names=[]
+#    n = tf.layers.conv2d(inputs=x,filters=1,kernel_size=args.kernel,padding='same',dilation_rate=args.dilation,activation=tf.nn.elu,name='0') ; print n
+#    for i in range(1,args.rules):    
+#        n = tf.layers.conv2d(inputs=n,filters=1,kernel_size=args.kernel,padding='same',dilation_rate=args.dilation,activation=tf.nn.elu,name=str(i)) ; print n
+#        for j in range(args.steps):
+#            n = tf.layers.conv2d(inputs=n,filters=1,kernel_size=args.kernel,padding='same',dilation_rate=args.dilation,activation=tf.nn.elu,name=str(i),reuse=True);print n
 
 
 #    n = tf.layers.conv2d(inputs=x,filters=1,kernel_size=args.kernel,padding='same',dilation_rate=args.dilation,activation=tf.nn.elu,name='1') ; print n
@@ -55,6 +66,7 @@ init = tf.global_variables_initializer()
 seed = np.zeros([1,256,256,1])
 #seed[0,126:130,126:130,0]=[0.09729081,0.17524717,0.29401641,0.46918393],[0.87818577,0.03318266,0.05943777,0.3967884],[0.4674391,0.06020691,0.21784802,0.59732923],[0.47063308,0.89000737,0.64447307,0.83497568]
 seed[0,126:130,126:130,0]=[0.34527012,0.5850928,0.21546599,0.74736086],[0.79759411,0.63966193,0.47159817,0.75842557],[0.65230226,0.2722718,0.25583924,0.58976751],[0.16484875,0.64111161,0.55920788,0.40978965]
+seed = np.random.uniform(0,1,size=[1,4,4,1])
 
 goal = cv2.imread(args.png)
 print type(goal)
@@ -83,6 +95,6 @@ with tf.Session() as sess:
         if i%100==0:
             pred = sess.run(n, feed_dict={x:seed})
 #            print pred[0]
-            cv2.imshow('img', cv2.resize(np.multiply(np.concatenate([seed[0],pred[0],goal[0]],axis=1),255.).astype(np.uint8),dsize=(0,0),fx=2,fy=2,interpolation=cv2.INTER_LANCZOS4))
+            cv2.imshow('img', cv2.resize(np.multiply(np.concatenate([pred[0],goal[0]],axis=1),255.).astype(np.uint8),dsize=(0,0),fx=2,fy=2,interpolation=cv2.INTER_LANCZOS4))
 #            cv2.imshow('img', cv2.resize(np.concatenate([seed[0],pred[0],goal[0]],axis=1).astype(np.uint8),dsize=(0,0),fx=2,fy=2,interpolation=cv2.INTER_LANCZOS4))
             cv2.waitKey(100)
